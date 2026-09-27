@@ -13,7 +13,8 @@ The system helps dairy owners manage customers, daily milk entries, monthly bill
 | 🗄️ Supabase | [Supabase/](https://github.com/GurdevKaur24/Digital-Dairy-System/tree/main/Supabase) | SQL schema, sample data, security rules, table design |
 | ⚙️ API code | [api/](https://github.com/GurdevKaur24/Digital-Dairy-System/tree/main/api) | Vercel serverless endpoint `GET /api/customers` |
 | 🖥️ Frontend | [public/](https://github.com/GurdevKaur24/Digital-Dairy-System/tree/main/public) | Customers page (HTML, CSS, JS) |
-| 🌐 Live endpoint | _Added after Vercel deployment_ | `https://<project>.vercel.app/api/customers` |
+| 🌐 Live API endpoint | [digital-dairy-system.vercel.app/api/customers](https://digital-dairy-system.vercel.app/api/customers) | Returns active customers as JSON |
+| 🌐 Live website | [digital-dairy-system.vercel.app](https://digital-dairy-system.vercel.app) | Customers page (deployed on Vercel) |
 
 Background: [Problem Statement](problem_statement.md) · [Solution Overview](Solution_overview.md)
 
