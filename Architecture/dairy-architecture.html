@@ -139,7 +139,7 @@
   <!-- Frontend -->
   <rect x="40" y="128" width="640" height="104" rx="12" class="fe"/>
   <text x="60" y="154" class="t-title">FRONTEND</text>
-  <text x="152" y="154" class="t-sub muted">HTML · CSS · Bootstrap · JavaScript — what the user sees</text>
+  <text x="152" y="154" class="t-sub muted">HTML · CSS · JavaScript — what the user sees</text>
   <g class="t-chip">
     <rect x="60"  y="172" width="70"  height="26" rx="6" class="chip"/><text x="95"  y="189" text-anchor="middle">Login</text>
     <rect x="138" y="172" width="92"  height="26" rx="6" class="chip"/><text x="184" y="189" text-anchor="middle">Dashboard</text>
@@ -162,7 +162,7 @@
   <!-- Backend -->
   <rect x="40" y="304" width="640" height="118" rx="12" class="be"/>
   <text x="60" y="330" class="t-title">BACKEND</text>
-  <text x="140" y="330" class="t-sub muted">Node.js + Express — the brain: checks, rules, calculations</text>
+  <text x="140" y="330" class="t-sub muted">Vercel Serverless Functions (Node.js) — checks, rules, calculations</text>
   <g class="t-chip">
     <rect x="60"  y="346" width="92"  height="26" rx="6" class="chip"/><text x="106" y="363" text-anchor="middle">Auth</text>
     <rect x="160" y="346" width="92"  height="26" rx="6" class="chip"/><text x="206" y="363" text-anchor="middle">Customers</text>
@@ -184,7 +184,7 @@
   <path d="M40 500 Q40 488 360 488 Q680 488 680 500 V572 Q680 586 360 586 Q40 586 40 572 Z" class="db"/>
   <path d="M40 500 Q40 512 360 512 Q680 512 680 500" class="db" fill="none"/>
   <text x="60" y="536" class="t-title">DATABASE</text>
-  <text x="148" y="536" class="t-sub muted">MySQL — stores everything permanently</text>
+  <text x="148" y="536" class="t-sub muted">Supabase (PostgreSQL) — stores everything permanently</text>
   <g class="t-chip">
     <rect x="60"  y="548" width="72"  height="24" rx="6" class="chip"/><text x="96"  y="564" text-anchor="middle">owner</text>
     <rect x="140" y="548" width="90"  height="24" rx="6" class="chip"/><text x="185" y="564" text-anchor="middle">customer</text>
@@ -354,16 +354,16 @@
   <table>
     <thead><tr><th>Layer</th><th>Choice</th><th>Why</th></tr></thead>
     <tbody>
-      <tr><td>Frontend</td><td>HTML, CSS, <b>Bootstrap</b>, plain JavaScript (or EJS templates)</td><td>Nothing new to learn first, and pages look good on a phone</td></tr>
-      <tr><td>Backend</td><td><b>Node.js + Express</b></td><td>JavaScript everywhere, with many tutorials</td></tr>
-      <tr><td>Database</td><td><b>MySQL</b> (or SQLite for the easiest setup)</td><td>The data fits naturally into linked tables</td></tr>
-      <tr><td>Login</td><td><code>express-session</code> + <code>bcrypt</code></td><td>Simple, and passwords are never stored as plain text</td></tr>
-      <tr><td>Tools</td><td>VS Code, Postman, MySQL Workbench, Git/GitHub</td><td>All free and widely used</td></tr>
-      <tr><td>Hosting</td><td>Render or Railway (free tier)</td><td>Easy to deploy</td></tr>
+      <tr><td>Frontend</td><td>HTML, CSS, plain JavaScript</td><td>Nothing new to learn first, and pages work on a phone</td></tr>
+      <tr><td>Backend</td><td><b>Vercel Serverless Functions</b> (Node.js)</td><td>Each file in <code>api/</code> becomes an endpoint, and there's no server to manage</td></tr>
+      <tr><td>Database</td><td><b>Supabase</b> (PostgreSQL)</td><td>A free hosted database with linked tables and a web dashboard</td></tr>
+      <tr><td>Database access</td><td><code>@supabase/supabase-js</code></td><td>Simple JavaScript calls instead of raw SQL strings</td></tr>
+      <tr><td>Security</td><td>Supabase Row Level Security + bcrypt password hashes</td><td>Each table allows only what's needed</td></tr>
+      <tr><td>Tools</td><td>VS Code, Node.js, Git/GitHub</td><td>All free and widely used</td></tr>
+      <tr><td>Hosting</td><td>Vercel (free tier)</td><td>Deploys straight from GitHub</td></tr>
     </tbody>
   </table>
-  <p class="note"><b>If you prefer Python:</b> Flask + SQLite + Bootstrap works just as well.<br>
-  <span class="skip"><b>Left out on purpose:</b> React, microservices, Redis, and a mobile app. A single shop doesn't need them.</span></p>
+  <p class="note"><span class="skip"><b>Left out on purpose:</b> React, microservices, Redis, and a mobile app. A single shop doesn't need them.</span></p>
 </div>
 
 <!-- ============ MERMAID SOURCE ============ -->
@@ -375,9 +375,9 @@
 <pre>flowchart TD
   O[Dairy Owner] --> F
   C[Customer - view only] -.-> F
-  F[Frontend: HTML/CSS/JS pages] -- HTTP request --> B[Backend: Node.js + Express]
-  B -- page / JSON response --> F
-  B -- SQL query --> D[(MySQL Database)]
+  F[Frontend: HTML/CSS/JS pages] -- HTTP request --> B[Backend: Vercel Serverless Functions]
+  B -- JSON response --> F
+  B -- Supabase JS query --> D[(Supabase PostgreSQL)]
   D -- rows --> B</pre>
   </details>
   <details>
