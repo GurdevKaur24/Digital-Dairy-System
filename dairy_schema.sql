@@ -1,5 +1,16 @@
---  DIGITAL DAIRY MANAGEMENT SYSTEM — 
+-- =====================================================================
+--  DIGITAL DAIRY MANAGEMENT SYSTEM — Supabase (PostgreSQL) schema
+--  Single-shop version: one dairy, one owner, many customers.
+--  How to run: Supabase Dashboard → SQL Editor → New query → paste → Run
+--  Run on an EMPTY project. IDs are auto-numbered 1, 2, 3 ... in insert order,
+--  and the sample INSERTs below rely on that.
+-- =====================================================================
 
+-- (Optional) To start over, uncomment these lines. WARNING: they delete all data.
+-- drop table if exists payment, bill, milk_record, customer, owner cascade;
+
+
+-- ---------------------------------------------------------------------
 -- 1. OWNER
 --    Login details for the shop owner. This system is for ONE dairy,
 --    so this table normally has just one row, and no other table links to it.
@@ -103,3 +114,87 @@ create table payment (
 create index idx_milk_customer    on milk_record(customer_id, record_date);
 create index idx_bill_customer    on bill(customer_id);
 create index idx_payment_bill     on payment(bill_id);
+
+
+-- =====================================================================
+--  SAMPLE DATA  (fictional names and numbers)
+--  owner: 1 row (one dairy). Every other table: 5 rows.
+-- =====================================================================
+
+-- OWNER: the single shop owner.
+-- The password hash is a PLACEHOLDER. Your backend should create a real
+-- one with bcrypt.
+insert into owner (name, shop_name, username, password_hash, phone) values
+  ('Gurpreet Singh', 'Waheguru Dairy', 'gurpreet', '$2b$10$placeholderHashForDemoOnly000000000000000000000001', '9876500001');
+
+-- CUSTOMERS of Waheguru Dairy
+insert into customer (name, phone, address, milk_type, default_rate) values
+  ('Ramesh Kumar',    '9814000001', 'H.No. 12, Model Town, Ludhiana',     'cow',     60.00),
+  ('Sunita Sharma',   '9814000002', 'H.No. 45, Sarabha Nagar, Ludhiana',  'buffalo', 70.00),
+  ('Harpreet Singh',  '9814000003', 'H.No. 7, Dugri Phase 1, Ludhiana',   'cow',     65.00),
+  ('Anjali Verma',    '9814000004', 'Flat 3B, BRS Nagar, Ludhiana',       'cow',     60.00),
+  ('Mohammed Iqbal',  '9814000005', 'H.No. 88, Civil Lines, Ludhiana',    'buffalo', 70.00);
+
+-- MILK RECORDS: a few entries from 1 September 2026.
+-- Don't list amount here; the database calculates it.
+insert into milk_record (customer_id, record_date, shift, quantity_litres, rate_per_litre) values
+  (1, '2026-09-01', 'morning', 1.00, 60.00),
+  (1, '2026-09-01', 'evening', 1.00, 60.00),
+  (2, '2026-09-01', 'morning', 1.00, 70.00),
+  (3, '2026-09-01', 'morning', 3.00, 65.00),
+  (4, '2026-09-01', 'morning', 1.50, 60.00);
+
+-- BILLS: August 2026 (31 days), one per customer.
+--   Ramesh  2.0 L/day × 31 = 62.0 L × ₹60 = ₹3720 → fully paid
+--   Sunita  1.0 L/day × 31 = 31.0 L × ₹70 = ₹2170 → ₹1000 paid
+--   Harpreet 3.0 L/day × 31 = 93.0 L × ₹65 = ₹6045 → nothing paid yet
+--   Anjali  1.5 L/day × 31 = 46.5 L × ₹60 = ₹2790 → fully paid
+--   Iqbal   2.5 L/day × 31 = 77.5 L × ₹70 = ₹5425 → ₹3000 paid
+insert into bill (customer_id, bill_month, bill_year, total_litres, total_amount, amount_paid, status, generated_on) values
+  (1, 8, 2026, 62.00, 3720.00, 3720.00, 'Paid',    '2026-09-01'),
+  (2, 8, 2026, 31.00, 2170.00, 1000.00, 'Partial', '2026-09-01'),
+  (3, 8, 2026, 93.00, 6045.00,    0.00, 'Pending', '2026-09-01'),
+  (4, 8, 2026, 46.50, 2790.00, 2790.00, 'Paid',    '2026-09-01'),
+  (5, 8, 2026, 77.50, 5425.00, 3000.00, 'Partial', '2026-09-01');
+
+-- PAYMENTS: these add up to each bill's amount_paid above.
+-- Iqbal paid in two parts.
+insert into payment (bill_id, customer_id, amount, payment_date, mode, note) values
+  (1, 1, 3720.00, '2026-09-03', 'upi',  'Full payment via PhonePe'),
+  (2, 2, 1000.00, '2026-09-05', 'cash', 'Balance next week'),
+  (4, 4, 2790.00, '2026-09-04', 'upi',  'Full payment via GPay'),
+  (5, 5, 2000.00, '2026-09-06', 'cash', 'First instalment'),
+  (5, 5, 1000.00, '2026-09-12', 'upi',  'Second instalment');
+
+
+-- =====================================================================
+--  QUICK CHECKS: run these after the inserts (dashboard queries)
+-- =====================================================================
+
+-- Total active customers                      → expected 5
+select count(*) as total_customers
+from customer where is_active;
+
+-- Total sales billed for August 2026          → expected 20150.00
+select sum(total_amount) as august_sales
+from bill
+where bill_month = 8 and bill_year = 2026;
+
+-- Total pending payments                      → expected 9640.00
+select sum(pending_amount) as total_pending
+from bill
+where status <> 'Paid';
+
+-- Customers who still owe money
+select c.name, b.total_amount, b.amount_paid, b.pending_amount, b.status
+from bill b join customer c using (customer_id)
+where b.status <> 'Paid'
+order by b.pending_amount desc;
+
+-- How a monthly bill is generated from milk records (example: September 2026)
+select customer_id,
+       sum(quantity_litres) as total_litres,
+       sum(amount)          as total_amount
+from milk_record
+where record_date >= '2026-09-01' and record_date < '2026-10-01'
+group by customer_id;

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Digital Dairy Architecture</title>
+<style>
+  :root {
+    --bg: #f7f6f2; --surface: #ffffff; --text: #1f2328; --muted: #5d6470; --border: #d9d6cc;
+    --accent: #2f6fdb;
+    --user-bg: #f1eefc; --user-bd: #7a62d6;
+    --fe-bg: #e8f1fd;   --fe-bd: #2f6fdb;
+    --be-bg: #e7f6ee;   --be-bd: #23915a;
+    --db-bg: #fdf1e3;   --db-bd: #c77a1c;
+    --chip: #ffffffcc;
+    --code-bg: #f0eee8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16181c; --surface: #1f2227; --text: #e8e6e1; --muted: #a2a8b3; --border: #3a3e46;
+      --accent: #7aa7f5;
+      --user-bg: #2a2540; --user-bd: #a792f0;
+      --fe-bg: #1c2a40;   --fe-bd: #6d9ff0;
+      --be-bg: #1b3327;   --be-bd: #5cc48d;
+      --db-bg: #3a2a17;   --db-bd: #e0a04d;
+      --chip: #00000040;
+      --code-bg: #262a30;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #16181c; --surface: #1f2227; --text: #e8e6e1; --muted: #a2a8b3; --border: #3a3e46;
+    --accent: #7aa7f5;
+    --user-bg: #2a2540; --user-bd: #a792f0;
+    --fe-bg: #1c2a40;   --fe-bd: #6d9ff0;
+    --be-bg: #1b3327;   --be-bd: #5cc48d;
+    --db-bg: #3a2a17;   --db-bd: #e0a04d;
+    --chip: #00000040;
+    --code-bg: #262a30;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 960px; margin: 0 auto; padding: 32px 16px 64px; }
+  header p { color: var(--muted); margin-top: 4px; }
+  h1 { font-size: 28px; font-weight: 600; margin: 0; }
+  h2 { font-size: 21px; font-weight: 600; margin: 48px 0 12px; }
+  h3 { font-size: 17px; font-weight: 600; margin: 24px 0 6px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .diagram svg { width: 100%; height: auto; display: block; }
+  .diagram { overflow-x: auto; }
+  .diagram svg { min-width: 560px; }
+  .note { color: var(--muted); font-size: 14px; margin-top: 10px; }
+  .flow { counter-reset: s; list-style: none; padding: 0; margin: 8px 0; }
+  .flow li { counter-increment: s; position: relative; padding: 6px 0 6px 38px; }
+  .flow li::before {
+    content: counter(s); position: absolute; left: 0; top: 7px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--fe-bg); border: 1px solid var(--fe-bd); color: var(--text);
+    font-size: 13px; display: grid; place-items: center;
+  }
+  .grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+  .layer { border-radius: 12px; padding: 14px 16px; border: 1px solid; }
+  .layer b { display: block; margin-bottom: 2px; }
+  .layer.fe { background: var(--fe-bg); border-color: var(--fe-bd); }
+  .layer.be { background: var(--be-bg); border-color: var(--be-bd); }
+  .layer.db { background: var(--db-bg); border-color: var(--db-bd); }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; }
+  .tablewrap { overflow-x: auto; }
+  code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; font-size: 14px; }
+  pre { background: var(--code-bg); padding: 14px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.5; }
+  details { margin-top: 12px; }
+  summary { cursor: pointer; color: var(--accent); }
+  .skip { color: var(--muted); }
+
+  /* SVG styling */
+  svg text { fill: var(--text); font-family: inherit; }
+  svg .muted { fill: var(--muted); }
+  svg .t-title { font-size: 15px; font-weight: 600; }
+  svg .t-sub { font-size: 12px; }
+  svg .t-chip { font-size: 12px; }
+  svg .t-lbl { font-size: 12px; fill: var(--muted); }
+  svg .user { fill: var(--user-bg); stroke: var(--user-bd); stroke-width: 1.5; }
+  svg .user.opt { stroke-dasharray: 5 4; }
+  svg .fe { fill: var(--fe-bg); stroke: var(--fe-bd); stroke-width: 1.5; }
+  svg .be { fill: var(--be-bg); stroke: var(--be-bd); stroke-width: 1.5; }
+  svg .db { fill: var(--db-bg); stroke: var(--db-bd); stroke-width: 1.5; }
+  svg .chip { fill: var(--chip); stroke: var(--border); }
+  svg .arrow { stroke: var(--muted); stroke-width: 1.6; fill: none; }
+  svg .arrow.dash { stroke-dasharray: 5 4; }
+  svg .ah { fill: var(--muted); }
+  svg .tbl { fill: var(--surface); stroke: var(--border); stroke-width: 1.2; }
+  svg .tbl-h { stroke: none; }
+  svg .rel { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+  svg .pk { fill: var(--db-bd); font-size: 10px; font-weight: 700; }
+  svg .fk { fill: var(--fe-bd); font-size: 10px; font-weight: 700; }
+  svg .col { font-size: 12.5px; }
+  svg .typ { font-size: 11.5px; fill: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <h1>Digital Dairy Management System</h1>
+  <p>This is a simple architecture for a local dairy shop. It replaces the notebook: daily milk entries, automatic monthly bills, and a clear list of who has paid and who still owes money.</p>
+</header>
+
+<h2>The problem</h2>
+<div class="card">
+  Small dairy owners write daily milk purchases in a notebook and add up monthly bills by hand, which leads to mistakes and wasted time. They also struggle to remember who has paid. This system keeps a digital record of all of it. The <b>owner</b> gets full access, and <b>customers</b> can optionally view their own records.
+</div>
+
+<!-- ============ SYSTEM ARCHITECTURE ============ -->
+<h2>1. System architecture</h2>
+<div class="card diagram">
+<svg viewBox="0 0 720 600" role="img" aria-label="Three-tier architecture: users, frontend, backend, database">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" class="ah"/>
+    </marker>
+  </defs>
+
+  <!-- Users -->
+  <rect x="130" y="16" width="200" height="60" rx="10" class="user"/>
+  <text x="230" y="42" text-anchor="middle" class="t-title">Dairy Owner</text>
+  <text x="230" y="61" text-anchor="middle" class="t-sub muted">full access · login</text>
+
+  <rect x="390" y="16" width="200" height="60" rx="10" class="user opt"/>
+  <text x="490" y="42" text-anchor="middle" class="t-title">Customer</text>
+  <text x="490" y="61" text-anchor="middle" class="t-sub muted">optional · view-only</text>
+
+  <path d="M230 76 V124" class="arrow" marker-end="url(#a)"/>
+  <path d="M490 76 V124" class="arrow dash" marker-end="url(#a)"/>
+  <text x="360" y="106" text-anchor="middle" class="t-lbl">uses a web browser (phone / laptop)</text>
+
+  <!-- Frontend -->
+  <rect x="40" y="128" width="640" height="104" rx="12" class="fe"/>
+  <text x="60" y="154" class="t-title">FRONTEND</text>
+  <text x="152" y="154" class="t-sub muted">HTML · CSS · Bootstrap · JavaScript — what the user sees</text>
+  <g class="t-chip">
+    <rect x="60"  y="172" width="70"  height="26" rx="6" class="chip"/><text x="95"  y="189" text-anchor="middle">Login</text>
+    <rect x="138" y="172" width="92"  height="26" rx="6" class="chip"/><text x="184" y="189" text-anchor="middle">Dashboard</text>
+    <rect x="238" y="172" width="92"  height="26" rx="6" class="chip"/><text x="284" y="189" text-anchor="middle">Customers</text>
+    <rect x="338" y="172" width="96"  height="26" rx="6" class="chip"/><text x="386" y="189" text-anchor="middle">Daily Entry</text>
+    <rect x="442" y="172" width="62"  height="26" rx="6" class="chip"/><text x="473" y="189" text-anchor="middle">Bills</text>
+    <rect x="512" y="172" width="80"  height="26" rx="6" class="chip"/><text x="552" y="189" text-anchor="middle">Payments</text>
+    <rect x="600" y="172" width="64"  height="26" rx="6" class="chip"/><text x="632" y="189" text-anchor="middle">History</text>
+  </g>
+  <text x="60" y="220" class="t-sub muted">Shows forms and tables. Does no calculations and stores no data.</text>
+
+  <!-- FE <-> BE arrows -->
+  <path d="M290 232 V300" class="arrow" marker-end="url(#a)"/>
+  <text x="280" y="262" text-anchor="end" class="t-lbl">HTTP request</text>
+  <text x="280" y="278" text-anchor="end" class="t-lbl">e.g. POST /milk  {customer, 2 L, ₹60}</text>
+  <path d="M430 300 V232" class="arrow" marker-end="url(#a)"/>
+  <text x="440" y="262" class="t-lbl">Response</text>
+  <text x="440" y="278" class="t-lbl">HTML page / JSON  "Saved ✓"</text>
+
+  <!-- Backend -->
+  <rect x="40" y="304" width="640" height="118" rx="12" class="be"/>
+  <text x="60" y="330" class="t-title">BACKEND</text>
+  <text x="140" y="330" class="t-sub muted">Node.js + Express — the brain: checks, rules, calculations</text>
+  <g class="t-chip">
+    <rect x="60"  y="346" width="92"  height="26" rx="6" class="chip"/><text x="106" y="363" text-anchor="middle">Auth</text>
+    <rect x="160" y="346" width="92"  height="26" rx="6" class="chip"/><text x="206" y="363" text-anchor="middle">Customers</text>
+    <rect x="260" y="346" width="92"  height="26" rx="6" class="chip"/><text x="306" y="363" text-anchor="middle">Milk Entry</text>
+    <rect x="360" y="346" width="92"  height="26" rx="6" class="chip"/><text x="406" y="363" text-anchor="middle">Billing</text>
+    <rect x="460" y="346" width="92"  height="26" rx="6" class="chip"/><text x="506" y="363" text-anchor="middle">Payments</text>
+    <rect x="560" y="346" width="104" height="26" rx="6" class="chip"/><text x="612" y="363" text-anchor="middle">Dashboard</text>
+  </g>
+  <text x="60" y="396" class="t-sub muted">Verifies login (session) · validates input · amount = qty × rate</text>
+  <text x="60" y="412" class="t-sub muted">Monthly bill = SUM of that month's entries · updates paid / pending</text>
+
+  <!-- BE <-> DB arrows -->
+  <path d="M290 422 V484" class="arrow" marker-end="url(#a)"/>
+  <text x="280" y="458" text-anchor="end" class="t-lbl">SQL query (INSERT / SELECT)</text>
+  <path d="M430 484 V422" class="arrow" marker-end="url(#a)"/>
+  <text x="440" y="458" class="t-lbl">Rows of data</text>
+
+  <!-- Database (cylinder) -->
+  <path d="M40 500 Q40 488 360 488 Q680 488 680 500 V572 Q680 586 360 586 Q40 586 40 572 Z" class="db"/>
+  <path d="M40 500 Q40 512 360 512 Q680 512 680 500" class="db" fill="none"/>
+  <text x="60" y="536" class="t-title">DATABASE</text>
+  <text x="148" y="536" class="t-sub muted">MySQL — stores everything permanently</text>
+  <g class="t-chip">
+    <rect x="60"  y="548" width="72"  height="24" rx="6" class="chip"/><text x="96"  y="564" text-anchor="middle">owner</text>
+    <rect x="140" y="548" width="90"  height="24" rx="6" class="chip"/><text x="185" y="564" text-anchor="middle">customer</text>
+    <rect x="238" y="548" width="104" height="24" rx="6" class="chip"/><text x="290" y="564" text-anchor="middle">milk_record</text>
+    <rect x="350" y="548" width="56"  height="24" rx="6" class="chip"/><text x="378" y="564" text-anchor="middle">bill</text>
+    <rect x="414" y="548" width="84"  height="24" rx="6" class="chip"/><text x="456" y="564" text-anchor="middle">payment</text>
+  </g>
+</svg>
+<p class="note">Example: the owner enters “Ramesh, 2 L, ₹60/L”. The frontend sends it to the backend, which checks it and calculates ₹120, then saves it into <code>milk_record</code>. The backend replies “Saved”, and the page updates.</p>
+</div>
+
+<!-- ============ ER DIAGRAM ============ -->
+<h2>2. Database (ER) diagram</h2>
+<div class="card diagram">
+<svg viewBox="0 0 900 560" role="img" aria-label="ER diagram with owner, customer, milk_record, bill and payment tables">
+  <!-- relationship lines (drawn first, under tables) -->
+  <!-- customer 1 — N milk_record -->
+  <path d="M560 90 H680" class="rel"/>
+  <path d="M572 82 V98" class="rel"/>
+  <path d="M668 90 L680 82 M668 90 L680 90 M668 90 L680 98" class="rel"/>
+  <text x="620" y="80" text-anchor="middle" class="t-lbl">buys</text>
+  <!-- customer 1 — N bill -->
+  <path d="M450 248 V300" class="rel"/>
+  <path d="M442 260 H458" class="rel"/>
+  <path d="M450 288 L442 300 M450 288 L450 300 M450 288 L458 300" class="rel"/>
+  <text x="460" y="278" class="t-lbl">receives (1 per month)</text>
+  <!-- bill 1 — N payment -->
+  <path d="M560 350 H680" class="rel"/>
+  <path d="M572 342 V358" class="rel"/>
+  <path d="M668 350 L680 342 M668 350 L680 350 M668 350 L680 358" class="rel"/>
+  <text x="620" y="340" text-anchor="middle" class="t-lbl">paid by</text>
+
+  <!-- OWNER -->
+  <g transform="translate(20,30)">
+    <rect width="200" height="150" rx="8" class="tbl"/>
+    <path d="M0 8 Q0 0 8 0 H192 Q200 0 200 8 V32 H0 Z" class="user tbl-h"/>
+    <text x="12" y="21" class="t-title">owner</text>
+    <text x="188" y="21" text-anchor="end" class="typ">login only</text>
+    <g transform="translate(0,52)">
+      <text x="12" y="0" class="pk">PK</text><text x="36" y="0" class="col">owner_id</text><text x="188" y="0" text-anchor="end" class="typ">int</text>
+      <text x="36" y="22" class="col">name</text><text x="188" y="22" text-anchor="end" class="typ">text</text>
+      <text x="36" y="44" class="col">username</text><text x="188" y="44" text-anchor="end" class="typ">text</text>
+      <text x="36" y="66" class="col">password_hash</text><text x="188" y="66" text-anchor="end" class="typ">text</text>
+      <text x="36" y="88" class="col">phone</text><text x="188" y="88" text-anchor="end" class="typ">text</text>
+    </g>
+  </g>
+
+  <!-- CUSTOMER -->
+  <g transform="translate(340,30)">
+    <rect width="220" height="218" rx="8" class="tbl"/>
+    <path d="M0 8 Q0 0 8 0 H212 Q220 0 220 8 V32 H0 Z" class="fe tbl-h"/>
+    <text x="12" y="21" class="t-title">customer</text>
+    <g transform="translate(0,52)">
+      <text x="12" y="0" class="pk">PK</text><text x="36" y="0" class="col">customer_id</text><text x="208" y="0" text-anchor="end" class="typ">int</text>
+      <text x="36" y="22" class="col">name</text><text x="208" y="22" text-anchor="end" class="typ">text</text>
+      <text x="36" y="44" class="col">phone</text><text x="208" y="44" text-anchor="end" class="typ">text</text>
+      <text x="36" y="66" class="col">address</text><text x="208" y="66" text-anchor="end" class="typ">text</text>
+      <text x="36" y="88" class="col">milk_type</text><text x="208" y="88" text-anchor="end" class="typ">cow / buffalo</text>
+      <text x="36" y="110" class="col">default_rate</text><text x="208" y="110" text-anchor="end" class="typ">decimal</text>
+      <text x="36" y="132" class="col">is_active</text><text x="208" y="132" text-anchor="end" class="typ">bool</text>
+      <text x="36" y="154" class="col">created_at</text><text x="208" y="154" text-anchor="end" class="typ">date</text>
+    </g>
+  </g>
+
+  <!-- MILK_RECORD -->
+  <g transform="translate(680,30)">
+    <rect width="200" height="196" rx="8" class="tbl"/>
+    <path d="M0 8 Q0 0 8 0 H192 Q200 0 200 8 V32 H0 Z" class="be tbl-h"/>
+    <text x="12" y="21" class="t-title">milk_record</text>
+    <g transform="translate(0,52)">
+      <text x="12" y="0" class="pk">PK</text><text x="36" y="0" class="col">record_id</text><text x="188" y="0" text-anchor="end" class="typ">int</text>
+      <text x="12" y="22" class="fk">FK</text><text x="36" y="22" class="col">customer_id</text><text x="188" y="22" text-anchor="end" class="typ">int</text>
+      <text x="36" y="44" class="col">date</text><text x="188" y="44" text-anchor="end" class="typ">date</text>
+      <text x="36" y="66" class="col">shift</text><text x="188" y="66" text-anchor="end" class="typ">AM / PM</text>
+      <text x="36" y="88" class="col">quantity_litres</text><text x="188" y="88" text-anchor="end" class="typ">decimal</text>
+      <text x="36" y="110" class="col">rate_per_litre</text><text x="188" y="110" text-anchor="end" class="typ">decimal</text>
+      <text x="36" y="132" class="col">amount</text><text x="188" y="132" text-anchor="end" class="typ">decimal</text>
+    </g>
+  </g>
+
+  <!-- BILL -->
+  <g transform="translate(340,300)">
+    <rect width="220" height="240" rx="8" class="tbl"/>
+    <path d="M0 8 Q0 0 8 0 H212 Q220 0 220 8 V32 H0 Z" class="db tbl-h"/>
+    <text x="12" y="21" class="t-title">bill</text>
+    <g transform="translate(0,52)">
+      <text x="12" y="0" class="pk">PK</text><text x="36" y="0" class="col">bill_id</text><text x="208" y="0" text-anchor="end" class="typ">int</text>
+      <text x="12" y="22" class="fk">FK</text><text x="36" y="22" class="col">customer_id</text><text x="208" y="22" text-anchor="end" class="typ">int</text>
+      <text x="36" y="44" class="col">month</text><text x="208" y="44" text-anchor="end" class="typ">int</text>
+      <text x="36" y="66" class="col">year</text><text x="208" y="66" text-anchor="end" class="typ">int</text>
+      <text x="36" y="88" class="col">total_litres</text><text x="208" y="88" text-anchor="end" class="typ">decimal</text>
+      <text x="36" y="110" class="col">total_amount</text><text x="208" y="110" text-anchor="end" class="typ">decimal</text>
+      <text x="36" y="132" class="col">amount_paid</text><text x="208" y="132" text-anchor="end" class="typ">decimal</text>
+      <text x="36" y="154" class="col">status</text><text x="208" y="154" text-anchor="end" class="typ">Paid/Partial/Pending</text>
+      <text x="36" y="176" class="col">generated_on</text><text x="208" y="176" text-anchor="end" class="typ">date</text>
+    </g>
+  </g>
+
+  <!-- PAYMENT -->
+  <g transform="translate(680,300)">
+    <rect width="200" height="174" rx="8" class="tbl"/>
+    <path d="M0 8 Q0 0 8 0 H192 Q200 0 200 8 V32 H0 Z" class="user tbl-h"/>
+    <text x="12" y="21" class="t-title">payment</text>
+    <g transform="translate(0,52)">
+      <text x="12" y="0" class="pk">PK</text><text x="36" y="0" class="col">payment_id</text><text x="188" y="0" text-anchor="end" class="typ">int</text>
+      <text x="12" y="22" class="fk">FK</text><text x="36" y="22" class="col">bill_id</text><text x="188" y="22" text-anchor="end" class="typ">int</text>
+      <text x="12" y="44" class="fk">FK</text><text x="36" y="44" class="col">customer_id</text><text x="188" y="44" text-anchor="end" class="typ">int</text>
+      <text x="36" y="66" class="col">amount</text><text x="188" y="66" text-anchor="end" class="typ">decimal</text>
+      <text x="36" y="88" class="col">payment_date</text><text x="188" y="88" text-anchor="end" class="typ">date</text>
+      <text x="36" y="110" class="col">mode</text><text x="188" y="110" text-anchor="end" class="typ">Cash / UPI</text>
+    </g>
+  </g>
+
+  <!-- legend -->
+  <g transform="translate(20,420)">
+    <text x="0" y="0" class="t-sub muted">How to read it</text>
+    <path d="M0 22 H50" class="rel"/><path d="M10 14 V30" class="rel"/>
+    <path d="M38 22 L50 14 M38 22 L50 22 M38 22 L50 30" class="rel"/>
+    <text x="60" y="26" class="t-sub">one → many</text>
+    <text x="0" y="56" class="pk">PK</text><text x="24" y="56" class="t-sub">primary key (unique ID)</text>
+    <text x="0" y="78" class="fk">FK</text><text x="24" y="78" class="t-sub">foreign key (links to</text>
+    <text x="24" y="94" class="t-sub">another table)</text>
+  </g>
+</svg>
+<p class="note"><b>Relationships:</b> this is a single-shop system, so the <code>owner</code> table only stores the shop owner's login and isn't linked to other tables. One customer has many milk records and many bills (one per month). One bill can have many payments, which allows partial payments.</p>
+<p class="note"><b>Why is the rate stored on every milk record?</b> If the milk price changes next month, old bills stay correct. <b>Pending amount</b> = <code>total_amount − amount_paid</code>.</p>
+</div>
+
+<!-- ============ EXPLANATION ============ -->
+<h2>3. The architecture in simple words</h2>
+<div class="card">
+  <p style="margin-top:0">Think of it like a <b>restaurant</b>. There are three layers, and each has one job:</p>
+  <div class="grid3">
+    <div class="layer fe"><b>Frontend = menu &amp; table</b>This is what you see and click: forms, buttons and tables. It only shows things and sends your requests.</div>
+    <div class="layer be"><b>Backend = waiter &amp; kitchen</b>It takes each request, checks that you are logged in, checks the input (no negative litres!), and does all the maths.</div>
+    <div class="layer db"><b>Database = storeroom</b>It keeps all the data safely and permanently in five organised tables.</div>
+  </div>
+
+  <h3>A normal day</h3>
+  <ol class="flow">
+    <li>The owner logs in. The password is checked against a secure <i>hash</i>, and a <i>session</i> keeps them logged in.</li>
+    <li>They open <b>Daily Entry</b>, pick a customer and type the litres. The rate fills in from the customer's default rate.</li>
+    <li>The backend calculates <code>amount = quantity × rate</code> and saves one row in <code>milk_record</code>.</li>
+  </ol>
+
+  <h3>End of the month</h3>
+  <ol class="flow">
+    <li>The owner clicks <b>Generate Bills</b>.</li>
+    <li>For each customer, the backend adds up that month's records (<code>SUM(quantity)</code>, <code>SUM(amount)</code>) and saves one row in <code>bill</code>.</li>
+    <li>When a customer pays, a row is added to <code>payment</code>. The bill's <code>amount_paid</code> goes up, and its status changes to <b>Partial</b> or <b>Paid</b>.</li>
+  </ol>
+
+  <h3>Dashboard: just three simple queries</h3>
+  <ul>
+    <li><b>Total customers:</b> <code>COUNT</code> of active customers</li>
+    <li><b>This month's sales:</b> <code>SUM(amount)</code> of this month's milk records</li>
+    <li><b>Pending payments:</b> <code>SUM(total_amount − amount_paid)</code> over bills that are not fully paid</li>
+  </ul>
+
+  <h3>Customer view (optional, build it last)</h3>
+  <p style="margin-bottom:0">The customer logs in with their phone number and a PIN. They can only <i>see</i> their own milk history and bills, and they can't change anything.</p>
+</div>
+
+<!-- ============ TECH STACK ============ -->
+<h2>4. Beginner-friendly tech stack</h2>
+<div class="card tablewrap">
+  <table>
+    <thead><tr><th>Layer</th><th>Choice</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Frontend</td><td>HTML, CSS, <b>Bootstrap</b>, plain JavaScript (or EJS templates)</td><td>Nothing new to learn first, and pages look good on a phone</td></tr>
+      <tr><td>Backend</td><td><b>Node.js + Express</b></td><td>JavaScript everywhere, with many tutorials</td></tr>
+      <tr><td>Database</td><td><b>MySQL</b> (or SQLite for the easiest setup)</td><td>The data fits naturally into linked tables</td></tr>
+      <tr><td>Login</td><td><code>express-session</code> + <code>bcrypt</code></td><td>Simple, and passwords are never stored as plain text</td></tr>
+      <tr><td>Tools</td><td>VS Code, Postman, MySQL Workbench, Git/GitHub</td><td>All free and widely used</td></tr>
+      <tr><td>Hosting</td><td>Render or Railway (free tier)</td><td>Easy to deploy</td></tr>
+    </tbody>
+  </table>
+  <p class="note"><b>If you prefer Python:</b> Flask + SQLite + Bootstrap works just as well.<br>
+  <span class="skip"><b>Left out on purpose:</b> React, microservices, Redis, and a mobile app. A single shop doesn't need them.</span></p>
+</div>
+
+<!-- ============ MERMAID SOURCE ============ -->
+<h2>Mermaid source (for your report)</h2>
+<div class="card">
+  To export these diagrams as images, paste the code into mermaid.live.
+  <details>
+    <summary>System architecture</summary>
+<pre>flowchart TD
+  O[Dairy Owner] --> F
+  C[Customer - view only] -.-> F
+  F[Frontend: HTML/CSS/JS pages] -- HTTP request --> B[Backend: Node.js + Express]
+  B -- page / JSON response --> F
+  B -- SQL query --> D[(MySQL Database)]
+  D -- rows --> B</pre>
+  </details>
+  <details>
+    <summary>ER diagram</summary>
+<pre>erDiagram
+  CUSTOMER ||--o{ MILK_RECORD : buys
+  CUSTOMER ||--o{ BILL : receives
+  BILL ||--o{ PAYMENT : "paid by"
+  OWNER { int owner_id PK
+    string name
+    string shop_name
+    string username
+    string password_hash
+    string phone }
+  CUSTOMER { int customer_id PK
+    string name
+    string phone
+    string address
+    string milk_type
+    decimal default_rate
+    boolean is_active
+    date created_at }
+  MILK_RECORD { int record_id PK
+    int customer_id FK
+    date date
+    string shift
+    decimal quantity_litres
+    decimal rate_per_litre
+    decimal amount }
+  BILL { int bill_id PK
+    int customer_id FK
+    int month
+    int year
+    decimal total_litres
+    decimal total_amount
+    decimal amount_paid
+    string status
+    date generated_on }
+  PAYMENT { int payment_id PK
+    int bill_id FK
+    int customer_id FK
+    decimal amount
+    date payment_date
+    string mode }</pre>
+  </details>
+</div>
+
+</main>
+</body>
+</html>
